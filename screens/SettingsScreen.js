@@ -1,5 +1,3 @@
-// screens/SettingsScreen.js
-import { BASE_URL, PRODUCTS_API, INVOICES_API, EXPENSES_API, DISCOUNT_RULES_API } from '../config';
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   View,
@@ -8,29 +6,54 @@ import {
   FlatList,
   StyleSheet,
   Alert,
+  ActivityIndicator
 } from 'react-native';
-import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { LanguageContext } from '../LanguageContext';
+import { DISCOUNT_RULES_API } from '../config';
 
 function SettingsScreen() {
   const { language, setLanguage } = useContext(LanguageContext);
   const [discountRules, setDiscountRules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDiscountRules();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDiscountRules = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/discountRules`); // Replace with your server URL
-      setDiscountRules(response.data);
+      setLoading(true);
+      setError(null);
+      const response = await axiosInstance.get(DISCOUNT_RULES_API);
+      
+      if (response.data.success) {
+        setDiscountRules(response.data.data);
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch discount rules');
+      }
     } catch (error) {
       console.error('Error fetching discount rules:', error);
+      setError(error);
+      
+      let errorMessage = '';
+      if (error.message === 'No internet connection') {
+        errorMessage = language === 'english' 
+          ? 'No internet connection. Please check your connection and try again.'
+          : 'අන්තර්ජාල සම්බන්ධතාවය නැත. කරුණාකර ඔබගේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.';
+      } else {
+        errorMessage = language === 'english'
+          ? 'Failed to load discount rules. Please try again later.'
+          : 'වට්ටම් නීති පූරණය කිරීමට අපොහොසත් විය. කරුණාකර පසුව නැවත උත්සාහ කරන්න.';
+      }
+      
       Alert.alert(
         language === 'english' ? 'Error' : 'දෝෂයකි',
-        language === 'english' ? 'Failed to load discount rules' : 'වට්ටම් නීති පූරණය කිරීමට අපොහොසත් විය'
+        errorMessage
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,53 +99,53 @@ function SettingsScreen() {
         <Text style={styles.sectionTitle}>
           {language === 'english' ? 'Discount Rules' : 'වට්ටම් නීති'}
         </Text>
-        <FlatList
-          data={discountRules}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.discountRule}>
-              <Text>
-                {language === 'english' 
-                  ? `Orders above LKR ${item.minAmount.toLocaleString()}`
-                  : `රු. ${item.minAmount.toLocaleString()} ට වැඩි ඇණවුම් සඳහා`}
-              </Text>
-              <Text style={styles.discountPercentage}>
-                {item.percentage}%
-              </Text>
-            </View>
-          )}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          {language === 'english' ? 'About' : 'පිළිබඳව'}
-        </Text>
-        <Text style={styles.aboutText}>
-          {language === 'english' 
-            ? 'Invoice Management System v1.0'
-            : 'ඉන්වොයිස් කළමනාකරණ පද්ධතිය v1.0'}
-        </Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#007AFF" />
+        ) : error ? (
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={fetchDiscountRules}
+          >
+            <Text style={styles.retryButtonText}>
+              {language === 'english' ? 'Retry' : 'නැවත උත්සාහ කරන්න'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <FlatList
+            data={discountRules}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.discountRule}>
+                <Text>
+                  {language === 'english' 
+                    ? `Orders above LKR ${item.min_amount.toLocaleString()}`
+                    : `රු. ${item.min_amount.toLocaleString()} ට වැඩි ඇණවුම් සඳහා`}
+                </Text>
+                <Text style={styles.discountPercentage}>
+                  {item.percentage}%
+                </Text>
+              </View>
+            )}
+          />
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // ... [Same styles as before]
   container: {
     flex: 1,
+    padding: 15,
     backgroundColor: '#fff',
   },
   section: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   languageButtons: {
     flexDirection: 'row',
@@ -132,17 +155,16 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#ddd',
-    width: '40%',
+    borderColor: '#007AFF',
+    width: '45%',
     alignItems: 'center',
   },
   selectedLanguage: {
     backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
   },
   languageButtonText: {
+    color: '#007AFF',
     fontSize: 16,
-    color: '#333',
   },
   selectedLanguageText: {
     color: '#fff',
@@ -151,9 +173,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    marginBottom: 5,
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    marginBottom: 10,
     borderRadius: 5,
   },
   discountPercentage: {
@@ -161,11 +183,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#007AFF',
   },
-  aboutText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
+  retryButton: {
+    backgroundColor: '#007AFF',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
     marginTop: 10,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
 
