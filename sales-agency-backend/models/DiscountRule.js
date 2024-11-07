@@ -1,21 +1,44 @@
-// models/DiscountRule.js
+// sales-agency-backend/models/DiscountRule.js
 
-module.exports = (sequelize, DataTypes) => {
-  const DiscountRule = sequelize.define('DiscountRule', {
-    minAmount: {
+const { Model, DataTypes } = require('sequelize');
+
+module.exports = (sequelize) => {
+  class DiscountRule extends Model {}
+
+  DiscountRule.init({
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    min_amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      field: 'min_amount'
     },
     percentage: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false
     },
+    created_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      field: 'created_at'
+    },
+    updated_at: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+      field: 'updated_at'
+    }
+  }, {
+    sequelize,
+    modelName: 'DiscountRule',
+    tableName: 'discount_rules',
+    timestamps: true,
+    underscored: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   });
-
-  // No associations in this example, but you can add them if needed
-  DiscountRule.associate = (models) => {
-    // Define associations if necessary
-  };
 
   return DiscountRule;
 };

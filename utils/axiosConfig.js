@@ -1,5 +1,5 @@
-// utils/axiosConfig.js
 import axios from 'axios';
+import NetInfo from '@react-native-community/netinfo';
 import { BASE_URL } from '../config';
 
 const axiosInstance = axios.create({
@@ -10,24 +10,42 @@ const axiosInstance = axios.create({
   }
 });
 
+// Request interceptor
 axiosInstance.interceptors.request.use(
-  config => {
-    console.log('Request:', config.method.toUpperCase(), config.url);
+  async config => {
+    // Check internet connection
+    const netInfo = await NetInfo.fetch();
+    if (!netInfo.isConnected) {
+      throw new Error('No internet connection');
+    }
+
+    console.log(`Making ${config.method.toUpperCase()} request to ${config.url}`);
     return config;
   },
   error => {
-    console.error('Request Error:', error);
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
 
+// Response interceptor
 axiosInstance.interceptors.response.use(
   response => {
-    console.log('Response:', response.status, response.config.url);
+    console.log(`Received response from ${response.config.url}:`, response.status);
     return response;
   },
   error => {
-    console.error('Response Error:', error);
+    if (error.message === 'No internet connection') {
+      console.error('Network Error: No internet connection');
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('Network Error: Request timeout');
+    } else if (error.response) {
+      console.error('Server error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error('Network error - no response received');
+    } else {
+      console.error('Request setup error:', error.message);
+    }
     return Promise.reject(error);
   }
 );
