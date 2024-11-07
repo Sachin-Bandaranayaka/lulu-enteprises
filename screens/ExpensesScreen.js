@@ -1,5 +1,4 @@
 // screens/ExpensesScreen.js
-import { BASE_URL, PRODUCTS_API, INVOICES_API, EXPENSES_API, DISCOUNT_RULES_API } from '../config';
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   View,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
+import { EXPENSES_API } from '../config';
 
 function ExpensesScreen() {
   const { language } = useContext(LanguageContext);
@@ -24,12 +24,11 @@ function ExpensesScreen() {
 
   useEffect(() => {
     fetchExpenses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchExpenses = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/expenses`); // Replace with your server URL
+      const response = await axios.get(EXPENSES_API);
       setExpenses(response.data);
     } catch (error) {
       console.error('Error fetching expenses:', error);
@@ -51,49 +50,81 @@ function ExpensesScreen() {
   };
 
   const addExpense = async () => {
-    if (newExpense.amount && newExpense.description) {
-      try {
-        const expenseData = {
-          type: newExpense.type,
-          amount: parseFloat(newExpense.amount),
-          description: newExpense.description,
-        };
-        const response = await axios.post(`${BASE_URL}/api/expenses`, expenseData); // Replace with your server URL
+    if (!newExpense.amount || !newExpense.description) {
+      Alert.alert(
+        language === 'english' ? 'Missing Information' : 'තොරතුරු අඩුයි',
+        language === 'english' ? 'Please fill in all fields' : 'සියලුම තොරතුරු පුරවන්න'
+      );
+      return;
+    }
 
-        setExpenses([...expenses, response.data]);
-        setNewExpense({ ...newExpense, amount: '', description: '' });
-      } catch (error) {
-        console.error('Error adding expense:', error);
-        Alert.alert(
-          language === 'english' ? 'Error' : 'දෝෂයකි',
-          language === 'english' ? 'Failed to add expense' : 'වියදම එකතු කිරීමට අපොහොසත් විය'
-        );
-      }
+    try {
+      const expenseData = {
+        type: newExpense.type,
+        amount: parseFloat(newExpense.amount),
+        description: newExpense.description,
+      };
+      const response = await axios.post(EXPENSES_API, expenseData);
+
+      setExpenses([...expenses, response.data]);
+      setNewExpense({ 
+        type: 'vehicle',
+        amount: '', 
+        description: '' 
+      });
+      
+      Alert.alert(
+        language === 'english' ? 'Success' : 'සාර්ථකයි',
+        language === 'english' ? 'Expense added successfully' : 'වියදම සාර්ථකව එකතු කරන ලදී'
+      );
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      Alert.alert(
+        language === 'english' ? 'Error' : 'දෝෂයකි',
+        language === 'english' ? 'Failed to add expense' : 'වියදම එකතු කිරීමට අපොහොසත් විය'
+      );
     }
   };
 
   const renderExpenseSection = (type) => {
     const typeExpenses = expenses.filter(exp => exp.type === type);
-    const total = typeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const total = typeExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
 
     return (
       <View style={styles.expenseSection}>
-        <Text style={styles.expenseType}>
-          {language === 'english' ? type.charAt(0).toUpperCase() + type.slice(1) : getExpenseTypeSinhala(type)}
-        </Text>
-        <Text style={styles.expenseTotal}>
-          {language === 'english' ? 'Total:' : 'එකතුව:'} LKR {total.toLocaleString()}
-        </Text>
-        <FlatList
-          data={typeExpenses}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.expenseItem}>
-              <Text>{item.description}</Text>
-              <Text>LKR {item.amount.toLocaleString()}</Text>
-            </View>
-          )}
-        />
+        <View style={styles.expenseHeader}>
+          <Text style={styles.expenseType}>
+            {language === 'english' ? type.charAt(0).toUpperCase() + type.slice(1) : getExpenseTypeSinhala(type)}
+          </Text>
+          <Text style={styles.expenseTotal}>
+            {language === 'english' ? 'Total: ' : 'එකතුව: '}
+            LKR {total.toLocaleString()}
+          </Text>
+        </View>
+        
+        {typeExpenses.length > 0 ? (
+          <FlatList
+            data={typeExpenses}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.expenseItem}>
+                <View style={styles.expenseDetails}>
+                  <Text style={styles.expenseDescription}>{item.description}</Text>
+                  <Text style={styles.expenseDate}>
+                    {new Date(item.date).toLocaleDateString()}
+                  </Text>
+                </View>
+                <Text style={styles.expenseAmount}>
+                  LKR {parseFloat(item.amount).toLocaleString()}
+                </Text>
+              </View>
+            )}
+          />
+        ) : (
+          <Text style={styles.noExpenses}>
+            {language === 'english' ? 'No expenses recorded' : 'වියදම් වාර්තා කර නැත'}
+          </Text>
+        )}
       </View>
     );
   };
@@ -104,6 +135,7 @@ function ExpensesScreen() {
         <Text style={styles.sectionTitle}>
           {language === 'english' ? 'Add New Expense' : 'නව වියදමක් එකතු කරන්න'}
         </Text>
+        
         <View style={styles.typeSelector}>
           {['vehicle', 'maintenance', 'fuel', 'other'].map(type => (
             <TouchableOpacity
@@ -125,21 +157,30 @@ function ExpensesScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
         <TextInput
           style={styles.input}
           placeholder={language === 'english' ? "Amount (LKR)" : "මුදල (රු.)"}
           value={newExpense.amount}
           onChangeText={(text) => setNewExpense(prev => ({ ...prev, amount: text }))}
           keyboardType="numeric"
+          placeholderTextColor="#999"
         />
+
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.descriptionInput]}
           placeholder={language === 'english' ? "Description" : "විස්තරය"}
           value={newExpense.description}
           onChangeText={(text) => setNewExpense(prev => ({ ...prev, description: text }))}
+          multiline
+          placeholderTextColor="#999"
         />
-        <TouchableOpacity style={styles.button} onPress={addExpense}>
-          <Text style={styles.buttonText}>
+
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={addExpense}
+        >
+          <Text style={styles.addButtonText}>
             {language === 'english' ? 'Add Expense' : 'වියදම එකතු කරන්න'}
           </Text>
         </TouchableOpacity>
@@ -149,32 +190,33 @@ function ExpensesScreen() {
         data={['vehicle', 'maintenance', 'fuel', 'other']}
         keyExtractor={(item) => item}
         renderItem={({ item }) => renderExpenseSection(item)}
+        style={styles.expenseList}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // ... [Same styles as before]
   container: {
     flex: 1,
     backgroundColor: '#fff',
   },
   addExpenseSection: {
     padding: 15,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e9ecef',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 15,
+    color: '#212529',
   },
   typeSelector: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   typeButton: {
     padding: 8,
@@ -182,59 +224,97 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#dee2e6',
+    backgroundColor: '#fff',
   },
   selectedType: {
     backgroundColor: '#007AFF',
     borderColor: '#007AFF',
   },
   typeButtonText: {
-    color: '#333',
+    color: '#495057',
   },
   selectedTypeText: {
     color: '#fff',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    marginBottom: 10,
+    borderColor: '#dee2e6',
+    padding: 12,
+    marginBottom: 12,
     borderRadius: 5,
     backgroundColor: '#fff',
+    fontSize: 16,
   },
-  button: {
+  descriptionInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  addButton: {
     backgroundColor: '#007AFF',
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
   },
-  buttonText: {
+  addButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
+  expenseList: {
+    flex: 1,
+  },
   expenseSection: {
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e9ecef',
+  },
+  expenseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   expenseType: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#212529',
   },
   expenseTotal: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 10,
+    fontSize: 15,
+    color: '#6c757d',
   },
   expenseItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#f9f9f9',
-    marginBottom: 5,
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    marginBottom: 8,
     borderRadius: 5,
+  },
+  expenseDetails: {
+    flex: 1,
+  },
+  expenseDescription: {
+    fontSize: 16,
+    color: '#212529',
+    marginBottom: 4,
+  },
+  expenseDate: {
+    fontSize: 14,
+    color: '#6c757d',
+  },
+  expenseAmount: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#212529',
+  },
+  noExpenses: {
+    textAlign: 'center',
+    color: '#6c757d',
+    fontStyle: 'italic',
+    marginTop: 10,
   },
 });
 
