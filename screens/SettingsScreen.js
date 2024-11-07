@@ -1,22 +1,38 @@
 // screens/SettingsScreen.js
-import React, { useState, useContext } from 'react';
+import { BASE_URL, PRODUCTS_API, INVOICES_API, EXPENSES_API, DISCOUNT_RULES_API } from '../config';
+import React, { useState, useContext, useEffect } from 'react';
 import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  FlatList, 
-  StyleSheet 
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Alert,
 } from 'react-native';
+import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
 
 function SettingsScreen() {
   const { language, setLanguage } = useContext(LanguageContext);
-  const [discountRules] = useState([
-    { id: 1, minAmount: 5000, percentage: 2 },
-    { id: 2, minAmount: 10000, percentage: 5 },
-    { id: 3, minAmount: 25000, percentage: 8 },
-    { id: 4, minAmount: 50000, percentage: 10 }
-  ]);
+  const [discountRules, setDiscountRules] = useState([]);
+
+  useEffect(() => {
+    fetchDiscountRules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchDiscountRules = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/discountRules`); // Replace with your server URL
+      setDiscountRules(response.data);
+    } catch (error) {
+      console.error('Error fetching discount rules:', error);
+      Alert.alert(
+        language === 'english' ? 'Error' : 'දෝෂයකි',
+        language === 'english' ? 'Failed to load discount rules' : 'වට්ටම් නීති පූරණය කිරීමට අපොහොසත් විය'
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -93,6 +109,7 @@ function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... [Same styles as before]
   container: {
     flex: 1,
     backgroundColor: '#fff',

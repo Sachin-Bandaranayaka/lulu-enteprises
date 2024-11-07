@@ -1,28 +1,44 @@
 // screens/ExpensesScreen.js
-import React, { useState, useContext } from 'react';
+import { BASE_URL, PRODUCTS_API, INVOICES_API, EXPENSES_API, DISCOUNT_RULES_API } from '../config';
+import React, { useState, useContext, useEffect } from 'react';
 import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  StyleSheet 
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Alert,
 } from 'react-native';
+import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
 
 function ExpensesScreen() {
   const { language } = useContext(LanguageContext);
-  const [expenses, setExpenses] = useState({
-    vehicle: [],
-    maintenance: [],
-    fuel: [],
-    other: []
-  });
+  const [expenses, setExpenses] = useState([]);
   const [newExpense, setNewExpense] = useState({
     type: 'vehicle',
     amount: '',
     description: ''
   });
+
+  useEffect(() => {
+    fetchExpenses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchExpenses = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/expenses`); // Replace with your server URL
+      setExpenses(response.data);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      Alert.alert(
+        language === 'english' ? 'Error' : 'දෝෂයකි',
+        language === 'english' ? 'Failed to load expenses' : 'වියදම් පූරණය කිරීමට අපොහොසත් විය'
+      );
+    }
+  };
 
   const getExpenseTypeSinhala = (type) => {
     const translations = {
@@ -34,26 +50,30 @@ function ExpensesScreen() {
     return translations[type] || type;
   };
 
-  const addExpense = () => {
+  const addExpense = async () => {
     if (newExpense.amount && newExpense.description) {
-      setExpenses(prev => ({
-        ...prev,
-        [newExpense.type]: [
-          ...prev[newExpense.type],
-          {
-            id: Date.now(),
-            amount: parseFloat(newExpense.amount),
-            description: newExpense.description,
-            date: new Date()
-          }
-        ]
-      }));
-      setNewExpense({ ...newExpense, amount: '', description: '' });
+      try {
+        const expenseData = {
+          type: newExpense.type,
+          amount: parseFloat(newExpense.amount),
+          description: newExpense.description,
+        };
+        const response = await axios.post(`${BASE_URL}/api/expenses`, expenseData); // Replace with your server URL
+
+        setExpenses([...expenses, response.data]);
+        setNewExpense({ ...newExpense, amount: '', description: '' });
+      } catch (error) {
+        console.error('Error adding expense:', error);
+        Alert.alert(
+          language === 'english' ? 'Error' : 'දෝෂයකි',
+          language === 'english' ? 'Failed to add expense' : 'වියදම එකතු කිරීමට අපොහොසත් විය'
+        );
+      }
     }
   };
 
   const renderExpenseSection = (type) => {
-    const typeExpenses = expenses[type];
+    const typeExpenses = expenses.filter(exp => exp.type === type);
     const total = typeExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
     return (
@@ -126,7 +146,7 @@ function ExpensesScreen() {
       </View>
 
       <FlatList
-        data={Object.keys(expenses)}
+        data={['vehicle', 'maintenance', 'fuel', 'other']}
         keyExtractor={(item) => item}
         renderItem={({ item }) => renderExpenseSection(item)}
       />
@@ -135,6 +155,7 @@ function ExpensesScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... [Same styles as before]
   container: {
     flex: 1,
     backgroundColor: '#fff',
