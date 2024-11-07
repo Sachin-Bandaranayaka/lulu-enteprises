@@ -1,22 +1,21 @@
 // screens/StockScreen.js
-import React, { useState, useContext } from 'react';
+import { BASE_URL, PRODUCTS_API, INVOICES_API, EXPENSES_API, DISCOUNT_RULES_API } from '../config';
+import React, { useState, useContext, useEffect } from 'react';
 import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  StyleSheet 
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Alert,
 } from 'react-native';
+import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
 
 function StockScreen() {
   const { language } = useContext(LanguageContext);
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Detergent Powder 1kg', name_si: 'සරල කුඩු 1kg', price: 1200, stock: 50 },
-    { id: 2, name: 'Detergent Powder 500g', name_si: 'සරල කුඩු 500g', price: 650, stock: 75 },
-    { id: 3, name: 'Soap Bar 100g', name_si: 'සබන් 100g', price: 180, stock: 100 }
-  ]);
+  const [products, setProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({
     name: '',
     name_si: '',
@@ -24,23 +23,59 @@ function StockScreen() {
     stock: ''
   });
 
-  const addProduct = () => {
-    if (newProduct.name && newProduct.name_si && newProduct.price && newProduct.stock) {
-      setProducts([...products, {
-        id: products.length + 1,
-        name: newProduct.name,
-        name_si: newProduct.name_si,
-        price: parseFloat(newProduct.price),
-        stock: parseInt(newProduct.stock)
-      }]);
-      setNewProduct({ name: '', name_si: '', price: '', stock: '' });
+  useEffect(() => {
+    fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/expenses`); // Replace with your server URL
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      Alert.alert(
+        language === 'english' ? 'Error' : 'දෝෂයකි',
+        language === 'english' ? 'Failed to load products' : 'භාණ්ඩ පූරණය කිරීමට අපොහොසත් විය'
+      );
     }
   };
 
-  const updateStock = (id, newStock) => {
-    setProducts(products.map(product => 
-      product.id === id ? { ...product, stock: parseInt(newStock) || 0 } : product
-    ));
+  const addProduct = async () => {
+    if (newProduct.name && newProduct.name_si && newProduct.price && newProduct.stock) {
+      try {
+        const response = await axios.post(`${BASE_URL}/api/products`, {
+          name: newProduct.name,
+          name_si: newProduct.name_si,
+          price: parseFloat(newProduct.price),
+          stock: parseInt(newProduct.stock)
+        }); // Replace with your server URL
+
+        setProducts([...products, response.data]);
+        setNewProduct({ name: '', name_si: '', price: '', stock: '' });
+      } catch (error) {
+        console.error('Error adding product:', error);
+        Alert.alert(
+          language === 'english' ? 'Error' : 'දෝෂයකි',
+          language === 'english' ? 'Failed to add product' : 'භාණ්ඩය එකතු කිරීමට අපොහොසත් විය'
+        );
+      }
+    }
+  };
+
+  const updateStock = async (id, newStock) => {
+    try {
+      await axios.put(`${BASE_URL}/api/products/${id}`, { stock: parseInt(newStock, 10) || 0 }); // Replace with your server URL
+      setProducts(products.map(product => 
+        product.id === id ? { ...product, stock: parseInt(newStock, 10) || 0 } : product
+      ));
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      Alert.alert(
+        language === 'english' ? 'Error' : 'දෝෂයකි',
+        language === 'english' ? 'Failed to update stock' : 'තොගය යාවත්කාලීන කිරීමට අපොහොසත් විය'
+      );
+    }
   };
 
   return (
@@ -110,6 +145,7 @@ function StockScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ... [Same styles as before]
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -160,10 +196,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   stockControl: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
   },
   stockInput: {
     borderWidth: 1,
@@ -171,8 +205,8 @@ const styles = StyleSheet.create({
     padding: 5,
     width: 60,
     textAlign: 'center',
-    marginLeft: 10,
     borderRadius: 5,
+    marginLeft: 5,
   },
 });
 

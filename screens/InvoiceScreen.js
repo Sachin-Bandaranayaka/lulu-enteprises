@@ -1,31 +1,46 @@
 // screens/InvoiceScreen.js
-import React, { useState, useContext } from 'react';
+import { BASE_URL, PRODUCTS_API, INVOICES_API, EXPENSES_API, DISCOUNT_RULES_API } from '../config';
+import React, { useState, useContext, useEffect } from 'react';
 import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  StyleSheet 
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
-
-const initialProducts = [
-  { id: 1, name: 'Detergent Powder 1kg', name_si: 'සරල කුඩු 1kg', price: 1200, stock: 50 },
-  { id: 2, name: 'Detergent Powder 500g', name_si: 'සරල කුඩු 500g', price: 650, stock: 75 },
-  { id: 3, name: 'Soap Bar 100g', name_si: 'සබන් 100g', price: 180, stock: 100 }
-];
+import ProductItem from '../components/ProductItem';
 
 function InvoiceScreen({ route }) {
   const { language } = useContext(LanguageContext);
   const { isOffline } = route.params;
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [customerDetails, setCustomerDetails] = useState({ storeName: '', contactNumber: '' });
   const [subtotal, setSubtotal] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/products`); // Replace with your server URL
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      Alert.alert(
+        language === 'english' ? 'Error' : 'දෝෂයකි',
+        language === 'english' ? 'Failed to load products' : 'භාණ්ඩ පූරණය කිරීමට අපොහොසත් විය'
+      );
+    }
+  };
 
   const updateItemQuantity = (productId, quantity) => {
     const product = products.find(p => p.id === productId);
@@ -55,47 +70,53 @@ function InvoiceScreen({ route }) {
   const calculateTotals = (items) => {
     const itemsTotal = items.reduce((acc, item) => acc + item.total, 0);
     setSubtotal(itemsTotal);
-    setDiscount(0);
-    setTotal(itemsTotal);
+    // Here you can apply discount rules fetched from the backend
+    setDiscount(0); // Update this if discount rules are applied
+    setTotal(itemsTotal - discount);
   };
 
   const saveInvoice = async () => {
     if (selectedItems.length === 0 || isOffline) return;
 
-    const invoice = {
-      date: new Date(),
-      customerDetails,
-      items: selectedItems,
+    const invoiceData = {
+      customerDetails: {
+        storeName: customerDetails.storeName,
+        contactNumber: customerDetails.contactNumber,
+      },
+      items: selectedItems.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.total,
+      })),
       subtotal,
       discount,
-      total
+      total,
     };
 
     try {
-      const existingInvoices = await AsyncStorage.getItem('invoices');
-      const invoices = existingInvoices ? JSON.parse(existingInvoices) : [];
-      invoices.push(invoice);
-      await AsyncStorage.setItem('invoices', JSON.stringify(invoices));
+      await axios.post(`${BASE_URL}/api/invoices`, invoiceData); // Replace with your server URL
 
-      const updatedProducts = products.map(product => {
-        const soldItem = selectedItems.find(item => item.id === product.id);
-        if (soldItem) {
-          return { ...product, stock: product.stock - soldItem.quantity };
-        }
-        return product;
-      });
-      setProducts(updatedProducts);
-
+      // Reset state
       setSelectedItems([]);
       setCustomerDetails({ storeName: '', contactNumber: '' });
       setSubtotal(0);
       setDiscount(0);
       setTotal(0);
 
-      alert(language === 'english' ? 'Invoice saved successfully' : 'ඉන්වොයිසිය සාර්ථකව සුරකින ලදී');
+      Alert.alert(
+        language === 'english' ? 'Success' : 'සාර්ථකයි',
+        language === 'english' ? 'Invoice saved successfully' : 'ඉන්වොයිසිය සාර්ථකව සුරකින ලදී'
+      );
+
+      // Refresh products to update stock levels
+      fetchProducts();
     } catch (error) {
       console.error('Error saving invoice:', error);
-      alert(language === 'english' ? 'Error saving invoice' : 'ඉන්වොයිසිය සුරැකීමේ දෝෂයකි');
+      Alert.alert(
+        language === 'english' ? 'Error' : 'දෝෂයකි',
+        language === 'english' ? 'Error saving invoice' : 'ඉන්වොයිසිය සුරැකීමේ දෝෂයකි'
+      );
     }
   };
 
@@ -125,17 +146,12 @@ function InvoiceScreen({ route }) {
         data={products}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.productItem}>
-            <Text>{language === 'english' ? item.name : item.name_si}</Text>
-            <Text>LKR {item.price.toLocaleString()}</Text>
-            <TextInput
-              style={styles.quantityInput}
-              placeholder="Qty"
-              value={selectedItems.find(i => i.id === item.id)?.quantity?.toString() || ''}
-              onChangeText={(text) => updateItemQuantity(item.id, parseInt(text) || 0)}
-              keyboardType="numeric"
-            />
-          </View>
+          <ProductItem
+            product={item}
+            language={language}
+            onQuantityChange={(quantity) => updateItemQuantity(item.id, quantity)}
+            selectedQuantity={selectedItems.find(i => i.id === item.id)?.quantity || 0}
+          />
         )}
         ListFooterComponent={() => (
           <>
@@ -182,6 +198,7 @@ function InvoiceScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
+  // ... [Same styles as before]
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -203,32 +220,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 5,
   },
-  productItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  quantityInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 5,
-    width: 50,
-    textAlign: 'center',
-    borderRadius: 5,
-  },
   selectedItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingVertical: 10,
   },
   totalSection: {
-    padding: 15,
-    backgroundColor: '#f9f9f9',
+    padding: 10,
+    borderTopWidth: 1,
+    borderColor: '#eee',
   },
   totalText: {
     fontSize: 18,
@@ -238,17 +238,16 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#007AFF',
     padding: 15,
-    borderRadius: 5,
     margin: 15,
+    borderRadius: 5,
     alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
   },
 });
 
