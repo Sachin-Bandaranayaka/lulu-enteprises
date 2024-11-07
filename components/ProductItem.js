@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 
-function ProductItem({ product, language, onQuantityChange, selectedQuantity }) {
+function ProductItem({ product, language, onQuantityChange, selectedQuantity = 0 }) {
   return (
     <View style={styles.productItem}>
       <Text>{language === 'english' ? product.name : product.name_si}</Text>
