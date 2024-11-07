@@ -5,9 +5,12 @@ exports.createInvoice = async (req, res) => {
   const { customerDetails, items, subtotal, discount, total } = req.body;
   try {
     // Find or create customer
-    let customer = await Customer.findOne({ where: { store_name: customerDetails.storeName } });
+    let customer = await Customer.findOne({ where: { storeName: customerDetails.storeName } });
     if (!customer) {
-      customer = await Customer.create({ store_name: customerDetails.storeName, contact_number: customerDetails.contactNumber });
+      customer = await Customer.create({
+        storeName: customerDetails.storeName,
+        contactNumber: customerDetails.contactNumber,
+      });
     }
 
     // Create invoice
@@ -16,7 +19,7 @@ exports.createInvoice = async (req, res) => {
     // Create invoice items and update product stock
     for (const item of items) {
       const product = await Product.findByPk(item.id);
-      if (product.stock < item.quantity) {
+      if (!product || product.stock < item.quantity) {
         return res.status(400).json({ message: 'Not enough stock for product: ' + product.name });
       }
 

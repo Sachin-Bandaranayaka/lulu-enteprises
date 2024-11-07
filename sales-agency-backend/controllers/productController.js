@@ -20,4 +20,25 @@ exports.addProduct = async (req, res) => {
   }
 };
 
-// Add more methods for updating and deleting products if needed.
+exports.updateProduct = async (req, res) => {
+  const { id } = req.params;
+  const { name, name_si, price, stock } = req.body;
+  try {
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (name !== undefined) product.name = name;
+    if (name_si !== undefined) product.name_si = name_si;
+    if (price !== undefined) product.price = price;
+    if (stock !== undefined) product.stock = stock;
+
+    await product.save();
+    res.json(product);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+};
+
+// Add more methods as needed.
