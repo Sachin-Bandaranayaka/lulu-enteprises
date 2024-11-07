@@ -51,10 +51,6 @@ function InvoiceScreen() {
       setDiscountRules(response.data);
     } catch (error) {
       console.error('Error fetching discount rules:', error);
-      Alert.alert(
-        language === 'english' ? 'Error' : 'දෝෂයකි',
-        language === 'english' ? 'Failed to load discount rules' : 'වට්ටම් නීති පූරණය කිරීමට අපොහොසත් විය'
-      );
     }
   };
 
@@ -86,87 +82,191 @@ function InvoiceScreen() {
   const calculateTotals = (items) => {
     const itemsTotal = items.reduce((acc, item) => acc + item.total, 0);
     setSubtotal(itemsTotal);
-    let applicableDiscount = 0;
-
-    // Apply discount rules
+    
+    let maxDiscount = 0;
     discountRules.forEach((rule) => {
-      if (itemsTotal >= parseFloat(rule.minAmount)) {
-        applicableDiscount = (itemsTotal * parseFloat(rule.percentage)) / 100;
+      if (itemsTotal >= rule.minAmount && rule.percentage > maxDiscount) {
+        maxDiscount = rule.percentage;
       }
     });
-
-    setDiscount(applicableDiscount);
-    setTotal(itemsTotal - applicableDiscount);
+    
+    const discountAmount = (itemsTotal * maxDiscount) / 100;
+    setDiscount(discountAmount);
+    setTotal(itemsTotal - discountAmount);
   };
 
   const saveInvoice = async () => {
+    if (!customerDetails.storeName) {
+      Alert.alert(
+        language === 'english' ? 'Missing Information' : 'තොරතුරු අඩුයි',
+        language === 'english' ? 'Please enter store name' : 'කරුණාකර වෙළඳසැලේ නම ඇතුළත් කරන්න'
+      );
+      return;
+    }
+
     if (selectedItems.length === 0) {
       Alert.alert(
-        language === 'english' ? 'Alert' : 'අවවාදයයි',
-        language === 'english' ? 'Please select at least one product.' : 'කරුණාකරවත් එක් භාණ්ඩයක් තෝරන්න.'
+        language === 'english' ? 'No Items' : 'භාණ්ඩ නැත',
+        language === 'english' ? 'Please select at least one item' : 'කරුණාකර අවම වශයෙන් එක් භාණ්ඩයක්වත් තෝරන්න'
       );
       return;
     }
-
-    if (isOffline) {
-      Alert.alert(
-        language === 'english' ? 'Offline' : 'අන්තර්ජාල සම්බන්ධතාව නොමැත',
-        language === 'english' ? 'Cannot save invoice while offline.' : 'අන්තර්ජාල සම්බන්ධතාව නොමැතිව ඉන්වොයිසිය සුරැකීමට නොහැක.'
-      );
-      return;
-    }
-
-    const invoiceData = {
-      customerDetails: {
-        storeName: customerDetails.storeName,
-        contactNumber: customerDetails.contactNumber,
-      },
-      items: selectedItems.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.total,
-      })),
-      subtotal,
-      discount,
-      total,
-    };
 
     try {
-      await axios.post(INVOICES_API, invoiceData);
+      const invoiceData = {
+        customerDetails,
+        items: selectedItems,
+        subtotal,
+        discount,
+        total
+      };
 
-      // Reset state
+      await axios.post(INVOICES_API, invoiceData);
+      
+      // Reset form
       setSelectedItems([]);
       setCustomerDetails({ storeName: '', contactNumber: '' });
       setSubtotal(0);
       setDiscount(0);
       setTotal(0);
-
+      
       Alert.alert(
         language === 'english' ? 'Success' : 'සාර්ථකයි',
         language === 'english' ? 'Invoice saved successfully' : 'ඉන්වොයිසිය සාර්ථකව සුරකින ලදී'
       );
-
-      // Refresh products to update stock levels
+      
+      // Refresh products to get updated stock
       fetchProducts();
     } catch (error) {
       console.error('Error saving invoice:', error);
       Alert.alert(
         language === 'english' ? 'Error' : 'දෝෂයකි',
-        language === 'english' ? 'Error saving invoice' : 'ඉන්වොයිසිය සුරැකීමේ දෝෂයකි'
+        language === 'english' ? 'Failed to save invoice' : 'ඉන්වොයිසිය සුරැකීමට අපොහොසත් විය'
       );
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* ... Rest of your component */}
+      <View style={styles.customerSection}>
+        <Text style={styles.sectionTitle}>
+          {language === 'english' ? 'Customer Details' : 'පාරිභෝගික තොරතුරු'}
+        </Text>
+        <TextInput
+          style={styles.input}
+          placeholder={language === 'english' ? "Store Name" : "වෙළඳසැලේ නම"}
+          value={customerDetails.storeName}
+          onChangeText={(text) => setCustomerDetails(prev => ({ ...prev, storeName: text }))}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={language === 'english' ? "Contact Number" : "දුරකථන අංකය"}
+          value={customerDetails.contactNumber}
+          onChangeText={(text) => setCustomerDetails(prev => ({ ...prev, contactNumber: text }))}
+          keyboardType="phone-pad"
+        />
+      </View>
+
+      <View style={styles.productSection}>
+        <Text style={styles.sectionTitle}>
+          {language === 'english' ? 'Products' : 'භාණ්ඩ'}
+        </Text>
+        <FlatList
+          data={products}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <ProductItem
+              product={item}
+              language={language}
+              onQuantityChange={(quantity) => updateItemQuantity(item.id, quantity)}
+              selectedQuantity={selectedItems.find(i => i.id === item.id)?.quantity || 0}
+            />
+          )}
+        />
+      </View>
+
+      <View style={styles.summarySection}>
+        <Text style={styles.summaryText}>
+          {language === 'english' ? 'Subtotal: ' : 'උප එකතුව: '}
+          LKR {subtotal.toLocaleString()}
+        </Text>
+        <Text style={styles.summaryText}>
+          {language === 'english' ? 'Discount: ' : 'වට්ටම: '}
+          LKR {discount.toLocaleString()}
+        </Text>
+        <Text style={styles.totalText}>
+          {language === 'english' ? 'Total: ' : 'මුළු එකතුව: '}
+          LKR {total.toLocaleString()}
+        </Text>
+        <TouchableOpacity 
+          style={[styles.saveButton, isOffline && styles.disabledButton]}
+          onPress={saveInvoice}
+          disabled={isOffline}
+        >
+          <Text style={styles.saveButtonText}>
+            {language === 'english' ? 'Save Invoice' : 'ඉන්වොයිසිය සුරකින්න'}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Your styles here
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  customerSection: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  productSection: {
+    flex: 1,
+  },
+  summarySection: {
+    padding: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#f9f9f9',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 5,
+  },
+  summaryText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default InvoiceScreen;

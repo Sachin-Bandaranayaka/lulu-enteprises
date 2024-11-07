@@ -4,20 +4,16 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
   if (__DEV__) {
-    // For development on Expo Go
+    // For development
     if (Platform.OS === 'android') {
-      // Android development
-      return 'exp://192.168.8.101:8081'; // Android emulator localhost
+      return 'http://192.168.8.101:3000'; // Your computer's IP address
     } else if (Platform.OS === 'ios') {
-      // iOS development
-      return 'http://localhost:3000'; // iOS simulator localhost
-    } else {
-      // Web development
       return 'http://localhost:3000';
     }
+    return 'http://localhost:3000';
   }
   // Production URL
-  return 'https://your-production-url.com'; // Replace with your actual production URL
+  return 'https://your-production-url.com';
 };
 
 const BASE_URL = getBaseUrl();
