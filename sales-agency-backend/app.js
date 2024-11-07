@@ -3,31 +3,16 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/db');
 
-// Import routes
-const productRoutes = require('./routes/productRoutes');
-const invoiceRoutes = require('./routes/invoiceRoutes');
-const expenseRoutes = require('./routes/expenseRoutes');
-const discountRuleRoutes = require('./routes/discountRuleRoutes');
-
 const app = express();
 
 // Enhanced CORS configuration
 app.use(cors({
-  origin: '*', // In production, replace with specific origins
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
-
-// Test endpoint
-app.get('/test', (req, res) => {
-  res.json({ 
-    message: 'Backend server is running!',
-    timestamp: new Date(),
-    status: 'OK'
-  });
-});
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -35,23 +20,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// Test endpoint
+app.get('/test', (req, res) => {
+  res.json({ message: 'Backend server is running!' });
+});
+
 // Use routes
-app.use('/api/products', productRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/discountRules', discountRuleRoutes);
+app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/invoices', require('./routes/invoiceRoutes'));
+app.use('/api/expenses', require('./routes/expenseRoutes'));
+app.use('/api/discountRules', require('./routes/discountRuleRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(`Error: ${err.message}`);
-  console.error(err.stack);
+  console.error('Error:', err);
   res.status(500).json({
     error: 'Internal Server Error',
     message: err.message
   });
 });
 
-// Database connection and server start
 const PORT = process.env.PORT || 3000;
 
 sequelize.authenticate()
@@ -62,7 +50,7 @@ sequelize.authenticate()
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on port ${PORT}`);
-      console.log(`Test the server at: http://localhost:${PORT}/test`);
+      console.log(`Server is accessible at: http://192.168.8.101:${PORT}`);
     });
   })
   .catch(err => {
