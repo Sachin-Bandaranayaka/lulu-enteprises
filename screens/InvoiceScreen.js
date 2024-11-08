@@ -14,6 +14,7 @@ import { LanguageContext } from '../LanguageContext';
 import { AppContext } from '../AppContext';
 import ProductItem from '../components/ProductItem';
 import { PRODUCTS_API, INVOICES_API, DISCOUNT_RULES_API } from '../config';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function InvoiceScreen() {
   const { language } = useContext(LanguageContext);
@@ -147,6 +148,7 @@ function InvoiceScreen() {
   };
 
   return (
+    <SafeAreaView style={{height:"100%",padding: 15, backgroundColor:"#FFF"}} > 
     <View style={styles.container}>
       <View style={styles.customerSection}>
         <Text style={styles.sectionTitle}>
@@ -209,6 +211,7 @@ function InvoiceScreen() {
         </TouchableOpacity>
       </View>
     </View>
+    </SafeAreaView>
   );
 }
 
@@ -218,16 +221,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   customerSection: {
-    padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   productSection: {
     flex: 1,
+    paddingTop:15,
   },
   summarySection: {
-    padding: 15,
-    borderTopWidth: 1,
+    paddingTop:20,
     borderTopColor: '#eee',
     backgroundColor: '#f9f9f9',
   },
