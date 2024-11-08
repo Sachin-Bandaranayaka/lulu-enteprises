@@ -12,6 +12,7 @@ import {
 import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
 import { EXPENSES_API } from '../config';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function ExpensesScreen() {
   const { language } = useContext(LanguageContext);
@@ -130,6 +131,7 @@ function ExpensesScreen() {
   };
 
   return (
+    <SafeAreaView style={{height:"100%",padding:15,backgroundColor:"#FFF"}} >
     <View style={styles.container}>
       <View style={styles.addExpenseSection}>
         <Text style={styles.sectionTitle}>
@@ -193,6 +195,7 @@ function ExpensesScreen() {
         style={styles.expenseList}
       />
     </View>
+    </SafeAreaView>
   );
 }
 
@@ -202,7 +205,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   addExpenseSection: {
-    padding: 15,
     backgroundColor: '#f8f9fa',
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
@@ -262,10 +264,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   expenseList: {
+    marginTop:15,
     flex: 1,
   },
   expenseSection: {
-    padding: 15,
+    paddingTop: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
