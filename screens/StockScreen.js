@@ -92,6 +92,24 @@ function StockScreen() {
     }
   };
 
+  const handleDelete = (productId) => {
+    Alert.alert(
+      language === 'english' ? 'Confirm Delete' : 'ඉවත් කිරීම තහවුරු කරන්න',
+      language === 'english' 
+        ? 'Are you sure you want to delete this product?' 
+        : 'ඔබ මෙම නිෂ්පාදනය ඉවත් කිරීමට අවශ්‍ය බව තහවුරු කරන්නද?',
+      [
+        { text: language === 'english' ? 'Cancel' : 'අවලංගු කරන්න', style: 'cancel' },
+        {
+          text: language === 'english' ? 'Delete' : 'ඉවත් කරන්න',
+          onPress: () => deleteProduct(productId),
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+  
+
   // screens/StockScreen.js
 // ... (keep the existing imports and logic)
 
@@ -163,6 +181,15 @@ return (
                 keyboardType="numeric"
               />
             </View>
+            <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={() => deleteProduct(item.id)}
+            >
+              <Text style={styles.deleteButtonText}>
+                {language === 'english'? 'Delete' : 'ඉවත් කරන්න'}
+              </Text>
+            </TouchableOpacity>
+
           </View>
         )}
       />
@@ -242,6 +269,19 @@ stockInput: {
   width: 60,
   textAlign: 'center',
   borderRadius: 5,
+},
+deleteButton: {
+  backgroundColor: 'red',
+  padding: 8,
+  borderRadius: 5,
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginLeft: 10,
+},
+deleteButtonText: {
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: 'bold',
 },
 });
 
