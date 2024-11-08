@@ -12,6 +12,7 @@ import {
 import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
 import { PRODUCTS_API } from '../config';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function StockScreen() {
   const { language } = useContext(LanguageContext);
@@ -95,6 +96,7 @@ function StockScreen() {
 // ... (keep the existing imports and logic)
 
 return (
+  <SafeAreaView style={{height:"100%",padding:15, backgroundColor:"#FFF"}} > 
   <View style={styles.container}>
     <View style={styles.addProductSection}>
       <Text style={styles.sectionTitle}>
@@ -166,6 +168,7 @@ return (
       />
     </View>
   </View>
+  </SafeAreaView>
 );
 }
 
@@ -175,14 +178,13 @@ container: {
   backgroundColor: '#fff',
 },
 addProductSection: {
-  padding: 15,
   backgroundColor: '#f9f9f9',
   borderBottomWidth: 1,
   borderBottomColor: '#eee',
 },
 productList: {
   flex: 1,
-  padding: 15,
+  paddingTop: 15,
 },
 sectionTitle: {
   fontSize: 18,
