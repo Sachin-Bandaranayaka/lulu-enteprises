@@ -11,15 +11,20 @@ import {
 import axiosInstance from '../utils/axiosConfig';
 import { LanguageContext } from '../LanguageContext';
 import { DISCOUNT_RULES_API } from '../config';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function SettingsScreen() {
   const { language, setLanguage } = useContext(LanguageContext);
   const [discountRules, setDiscountRules] = useState([]);
+  const [lastInvoice, setLastInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingInvoice, setLoadingInvoice] = useState(true);
   const [error, setError] = useState(null);
+  const [invoiceError, setInvoiceError] = useState(null)
 
   useEffect(() => {
     fetchDiscountRules();
+    fetchLastInvoice();
   }, []);
 
   const fetchDiscountRules = async () => {
@@ -57,7 +62,46 @@ function SettingsScreen() {
     }
   };
 
+  const fetchLastInvoice = async () => {
+    try {
+      setLoadingInvoice(true);
+      setInvoiceError(null);
+      const response = await axiosInstance.get(LAST_INVOICE_API);
+      
+      if (response.data.success) {
+        setLastInvoice(response.data.data);
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch last invoice');
+      }
+    } catch (error) {
+      console.error('Error fetching last invoice:', error);
+      setInvoiceError(error);
+      showAlert('invoice');
+    } finally {
+      setLoadingInvoice(false);
+    }
+  };
+
+  const showAlert = (type) => {
+    let errorMessage = '';
+    if (error.message === 'No internet connection') {
+      errorMessage = language === 'english' 
+        ? 'No internet connection. Please check your connection and try again.'
+        : 'අන්තර්ජාල සම්බන්ධතාවය නැත. කරුණාකර ඔබගේ සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.';
+    } else {
+      errorMessage = language === 'english'
+        ? `Failed to load ${type === 'discount' ? 'discount rules' : 'invoice'}. Please try again later.`
+        : `${type === 'discount' ? 'වට්ටම් නීති' : 'ඉන්වොයිස'} පූරණය කිරීමට අපොහොසත් විය. කරුණාකර පසුව නැවත උත්සාහ කරන්න.`;
+    }
+    Alert.alert(
+      language === 'english' ? 'Error' : 'දෝෂයකි',
+      errorMessage
+    );
+  };
+
+
   return (
+    <SafeAreaView style={{height:"100%", padding: 15, backgroundColor:"#FFF"}} > 
     <View style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
@@ -129,14 +173,39 @@ function SettingsScreen() {
           />
         )}
       </View>
+      <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {language === 'english' ? 'Last Invoice' : 'අවසන් ඉන්වොයිස'}
+          </Text>
+          {loadingInvoice ? (
+            <ActivityIndicator size="large" color="#007AFF" />
+          ) : invoiceError ? (
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={fetchLastInvoice}
+            >
+              <Text style={styles.retryButtonText}>
+                {language === 'english' ? 'Retry' : 'නැවත උත්සාහ කරන්න'}
+              </Text>
+            </TouchableOpacity>
+          ) : lastInvoice ? (
+            <View style={styles.invoiceContainer}>
+              <Text>{language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'} {lastInvoice.id}</Text>
+              <Text>{language === 'english' ? 'Amount:' : 'මුදල:'} LKR {lastInvoice.amount.toLocaleString()}</Text>
+              <Text>{language === 'english' ? 'Date:' : 'දිනය:'} {new Date(lastInvoice.date).toLocaleDateString()}</Text>
+            </View>
+          ) : (
+            <Text>{language === 'english' ? 'No recent invoice found.' : 'මෑතකදී ඉන්වොයිසක් හමු නොවීය.'}</Text>
+          )}
+        </View>
     </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 15,
     backgroundColor: '#fff',
   },
   section: {
@@ -193,6 +262,11 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  invoiceContainer: {
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 5,
   },
 });
 
