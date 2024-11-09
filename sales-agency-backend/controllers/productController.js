@@ -41,4 +41,27 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
+// Delete Product
+// Delete Product
+exports.deleteProduct = async (req, res) => {
+  const { id } = req.params;
+  console.log('Delete request received for ID:', id);
+
+  try {
+    const product = await Product.findByPk(id);
+    console.log('Product found:', product);
+
+    if (!product) {
+      console.log('Product not found');
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    await product.destroy();
+    console.log('Product deleted');
+    res.json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting product:', error.message);
+    res.status(500).send(error.message);
+  }
+};
 // Add more methods as needed.
