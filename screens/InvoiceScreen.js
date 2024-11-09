@@ -31,7 +31,7 @@ function InvoiceScreen() {
   useEffect(() => {
     fetchProducts();
     fetchDiscountRules();
-  }, []);
+  }, [products]);
 
   const fetchProducts = async () => {
     try {
