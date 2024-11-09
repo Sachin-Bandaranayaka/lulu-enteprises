@@ -6,6 +6,8 @@ const { sequelize } = require('./models');
 
 const app = express();
 
+const invoiceRoutes = require('./routes/invoiceRoutes');
+
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -19,6 +21,7 @@ app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/invoices', require('./routes/invoiceRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.use('/api/discountRules', require('./routes/discountRuleRoutes'));
+app.use('/api/invoices', invoiceRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -30,6 +33,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
 
 // Sync database and start server
 sequelize.sync()

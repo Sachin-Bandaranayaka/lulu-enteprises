@@ -1,4 +1,3 @@
-// screens/InvoiceScreen.js
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   View,
@@ -14,6 +13,8 @@ import { LanguageContext } from '../LanguageContext';
 import { AppContext } from '../AppContext';
 import ProductItem from '../components/ProductItem';
 import { PRODUCTS_API, INVOICES_API, DISCOUNT_RULES_API } from '../config';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import axiosInstance from '../utils/axiosConfig';
 
 function InvoiceScreen() {
   const { language } = useContext(LanguageContext);
@@ -26,11 +27,20 @@ function InvoiceScreen() {
   const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
   const [discountRules, setDiscountRules] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchProducts();
+  }, [products]);
+
+  useEffect(() => {
+    calculateTotals(selectedItems);
+  }, [selectedItems, discountRules]);
+
+  useEffect(() => {
     fetchDiscountRules();
   }, []);
+  
 
   const fetchProducts = async () => {
     try {
@@ -47,10 +57,19 @@ function InvoiceScreen() {
 
   const fetchDiscountRules = async () => {
     try {
-      const response = await axios.get(DISCOUNT_RULES_API);
-      setDiscountRules(response.data);
+      setLoading(true);
+      const response = await axiosInstance.get(DISCOUNT_RULES_API);
+
+      if (response.data.success) {
+        setDiscountRules(response.data.data);
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch discount rules');
+      }
     } catch (error) {
       console.error('Error fetching discount rules:', error);
+      showErrorAlert(error, 'discount');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,15 +101,19 @@ function InvoiceScreen() {
   const calculateTotals = (items) => {
     const itemsTotal = items.reduce((acc, item) => acc + item.total, 0);
     setSubtotal(itemsTotal);
-    
-    let maxDiscount = 0;
-    discountRules.forEach((rule) => {
-      if (itemsTotal >= rule.minAmount && rule.percentage > maxDiscount) {
-        maxDiscount = rule.percentage;
+
+    // Sort discount rules in descending order of min_amount
+    const sortedDiscountRules = [...discountRules].sort((a, b) => b.min_amount - a.min_amount);
+
+    let applicableDiscount = 0;
+    for (let rule of sortedDiscountRules) {
+      if (itemsTotal >= rule.min_amount) {
+        applicableDiscount = rule.percentage;
+        break; // Stop once the highest applicable discount is found
       }
-    });
-    
-    const discountAmount = (itemsTotal * maxDiscount) / 100;
+    }
+
+    const discountAmount = (itemsTotal * applicableDiscount) / 100;
     setDiscount(discountAmount);
     setTotal(itemsTotal - discountAmount);
   };
@@ -147,6 +170,7 @@ function InvoiceScreen() {
   };
 
   return (
+    <SafeAreaView style={{height:"100%",padding: 15, backgroundColor:"#FFF"}} > 
     <View style={styles.container}>
       <View style={styles.customerSection}>
         <Text style={styles.sectionTitle}>
@@ -209,6 +233,7 @@ function InvoiceScreen() {
         </TouchableOpacity>
       </View>
     </View>
+    </SafeAreaView>
   );
 }
 
@@ -218,16 +243,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   customerSection: {
-    padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   productSection: {
     flex: 1,
+    paddingTop:15,
   },
   summarySection: {
-    padding: 15,
-    borderTopWidth: 1,
+    paddingTop:20,
     borderTopColor: '#eee',
     backgroundColor: '#f9f9f9',
   },
@@ -237,36 +261,34 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   input: {
+    height: 40,
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
     marginBottom: 10,
-    borderRadius: 5,
+    paddingHorizontal: 8,
   },
   summaryText: {
     fontSize: 16,
-    marginBottom: 5,
+    marginVertical: 5,
   },
   totalText: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 5,
-    marginBottom: 15,
+    marginVertical: 5,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 5,
+    backgroundColor: '#007bff',
+    paddingVertical: 10,
+    marginTop: 10,
     alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
   },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  }
 });
 
 export default InvoiceScreen;

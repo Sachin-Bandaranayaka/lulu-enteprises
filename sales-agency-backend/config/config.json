@@ -1,22 +1,22 @@
 {
   "development": {
     "username": "postgres",
-    "password": "5.sachin.505",
-    "database": "lulu_db",
+    "password": "mysecretpassword",
+    "database": "postgres",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "test": {
     "username": "postgres",
-    "password": "5.sachin.505",
-    "database": "lulu_db",
+    "password": "mysecretpassword",
+    "database": "postgres",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "production": {
     "username": "postgres",
-    "password": "5.sachin.505",
-    "database": "lulu_db",
+    "password": "mysecretpassword",
+    "database": "postgres",
     "host": "127.0.0.1",
     "dialect": "postgres"
   }

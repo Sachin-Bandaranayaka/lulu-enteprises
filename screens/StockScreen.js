@@ -12,6 +12,7 @@ import {
 import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
 import { PRODUCTS_API } from '../config';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function StockScreen() {
   const { language } = useContext(LanguageContext);
@@ -25,7 +26,7 @@ function StockScreen() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [products]);
 
   const fetchProducts = async () => {
     try {
@@ -91,10 +92,45 @@ function StockScreen() {
     }
   };
 
+
+  const handleDelete = async (id) => {
+    console.log("Attempting to delete product with ID:", id);
+    Alert.alert(
+      language === 'english' ? 'Delete Product' : 'භාණ්ඩය ඉවත් කරන්න',
+      language === 'english' ? 'Are you sure you want to delete this product?' : 'ඔබට මෙම භාණ්ඩය ඉවත් කිරීමට අවශ්ය බවට ඔබ විශ්වාසද?',
+      [
+        {
+          text: language === 'english' ? 'Cancel' : 'අවලංගු කරන්න',
+          style: 'cancel',
+        },
+        {
+          text: language === 'english' ? 'Delete' : 'ඉවත් කරන්න',
+          onPress: async () => {
+            try {
+              await axios.delete(`${PRODUCTS_API}/${id}`);
+              setProducts(products.filter((product) => product.id !== id));
+              Alert.alert(
+                language === 'english' ? 'Deleted' : 'ඉවත් කරන ලදී',
+                language === 'english' ? 'Product deleted successfully' : 'භාණ්ඩය සාර්ථකව ඉවත් කරන ලදී'
+              );
+            } catch (error) {
+              console.error('Error deleting product:', error);
+              Alert.alert(
+                language === 'english' ? 'Error' : 'දෝෂයකි',
+                language === 'english' ? 'Failed to delete product' : 'භාණ්ඩය ඉවත් කිරීමට අපොහොසත් විය'
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // screens/StockScreen.js
 // ... (keep the existing imports and logic)
 
 return (
+  <SafeAreaView style={{height:"100%",padding:15, backgroundColor:"#FFF"}} > 
   <View style={styles.container}>
     <View style={styles.addProductSection}>
       <Text style={styles.sectionTitle}>
@@ -161,11 +197,21 @@ return (
                 keyboardType="numeric"
               />
             </View>
+            <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={() => handleDelete(item.id)}
+            >
+              <Text style={styles.deleteButtonText}>
+                {language === 'english'? 'Delete' : 'ඉවත් කරන්න'}
+              </Text>
+            </TouchableOpacity>
+
           </View>
         )}
       />
     </View>
   </View>
+  </SafeAreaView>
 );
 }
 
@@ -175,14 +221,13 @@ container: {
   backgroundColor: '#fff',
 },
 addProductSection: {
-  padding: 15,
   backgroundColor: '#f9f9f9',
   borderBottomWidth: 1,
   borderBottomColor: '#eee',
 },
 productList: {
   flex: 1,
-  padding: 15,
+  paddingTop: 15,
 },
 sectionTitle: {
   fontSize: 18,
@@ -240,6 +285,19 @@ stockInput: {
   width: 60,
   textAlign: 'center',
   borderRadius: 5,
+},
+deleteButton: {
+  backgroundColor: 'red',
+  padding: 8,
+  borderRadius: 5,
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginLeft: 10,
+},
+deleteButtonText: {
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: 'bold',
 },
 });
 
