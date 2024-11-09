@@ -42,4 +42,23 @@ exports.createInvoice = async (req, res) => {
   }
 };
 
+exports.getLastInvoice = async (req, res) => {
+  try {
+    // Fetch the last invoice by sorting with createdAt in descending order
+    const lastInvoice = await Invoice.findOne({
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!lastInvoice) {
+      // If no invoice is found, return a 404 response
+      return res.status(404).json({ success: false, message: 'No invoices found' });
+    }
+
+    res.json({ success: true, data: lastInvoice });
+  } catch (error) {
+    console.error('Error fetching last invoice:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // Add methods for getting invoices, updating invoices, etc.
