@@ -7,7 +7,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Modal
 } from 'react-native';
 import axiosInstance from '../utils/axiosConfig';
 import { LanguageContext } from '../LanguageContext';
@@ -23,6 +24,7 @@ function SettingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [invoiceError, setInvoiceError] = useState(null);
+  const [isModalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     fetchDiscountRules();
@@ -189,11 +191,13 @@ function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           ) : lastInvoice ? (
-            <View style={styles.invoiceContainer}>
-              <Text>{language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'} {lastInvoice.id}</Text>
-              <Text>{language === 'english' ? 'Amount:' : 'මුදල:'} LKR {lastInvoice.total.toLocaleString()}</Text>
-              <Text>{language === 'english' ? 'Date:' : 'දිනය:'} {new Date(lastInvoice.createdAt).toLocaleDateString()}</Text>
-            </View>
+            <TouchableOpacity onPress={() => setModalVisible(true)}>
+              <View style={styles.invoiceContainer}>
+                <Text>{language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'} {lastInvoice.id}</Text>
+                <Text>{language === 'english' ? 'Amount:' : 'මුදල:'} LKR {lastInvoice.total.toLocaleString()}</Text>
+                <Text>{language === 'english' ? 'Date:' : 'දිනය:'} {new Date(lastInvoice.createdAt).toLocaleDateString()}</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
             <Text>{language === 'english' ? 'No recent invoice found.' : 'මෑතකදී ඉන්වොයිසක් හමු නොවීය.'}</Text>
           )}
@@ -206,6 +210,42 @@ function SettingsScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>
+                {language === 'english'? 'Invoice Details' : 'ඉන්වොයිස විස්තර'}
+              </Text>
+              {lastInvoice && (
+                <>
+                  <Text>{language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'} {lastInvoice.id}</Text>
+                  <Text>{language === 'english' ? 'Amount:' : 'මුදල:'} LKR {lastInvoice.total.toLocaleString()}</Text>
+                  <Text>{language === 'english' ? 'Date:' : 'දිනය:'} {new Date(lastInvoice.createdAt).toLocaleDateString()}</Text>
+                  <Text>{language === 'english' ? 'Items:' : 'අයිතමයන්:'}</Text>
+                  {lastInvoice.items && lastInvoice.items.map((item, index) => (
+                    <Text key={index} style={styles.itemText}>
+                      {item.product.name} - {item.quantity} x LKR {item.product.price.toLocaleString()}
+                    </Text>
+                  ))}
+                </>
+              )}
+              <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>
+                  {language === 'english' ? 'Close' : 'ඉවත්වන්න'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -286,6 +326,39 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    width: '95%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    alignContent:'center'
+  },
+  itemText: {
+    fontSize: 16,
+    marginVertical: 2,
+  },
+  closeButton: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#007AFF',
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 
