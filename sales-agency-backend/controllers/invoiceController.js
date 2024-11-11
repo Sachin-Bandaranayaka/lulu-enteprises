@@ -1,4 +1,5 @@
 // controllers/invoiceController.js
+// const { Invoice, InvoiceItem, Product } = require('../models');
 const { Invoice, InvoiceItem, Product, Customer } = require('../models');
 
 exports.createInvoice = async (req, res) => {
@@ -47,6 +48,19 @@ exports.getLastInvoice = async (req, res) => {
     // Fetch the last invoice by sorting with createdAt in descending order
     const lastInvoice = await Invoice.findOne({
       order: [['createdAt', 'DESC']],
+      include:[
+        {
+          model:InvoiceItem,
+          as: 'items',
+          include:[
+            {
+              model: Product,
+              as: 'product',
+              attributes: ['name','price']
+            }
+          ]
+        }
+      ]
     });
 
     if (!lastInvoice) {
