@@ -224,15 +224,36 @@ function SettingsScreen() {
               </Text>
               {lastInvoice && (
                 <>
-                  <Text>{language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'} {lastInvoice.id}</Text>
-                  <Text>{language === 'english' ? 'Amount:' : 'මුදල:'} LKR {lastInvoice.total.toLocaleString()}</Text>
-                  <Text>{language === 'english' ? 'Date:' : 'දිනය:'} {new Date(lastInvoice.createdAt).toLocaleDateString()}</Text>
-                  <Text>{language === 'english' ? 'Items:' : 'අයිතමයන්:'}</Text>
-                  {lastInvoice.items && lastInvoice.items.map((item, index) => (
-                    <Text key={index} style={styles.itemText}>
-                      {item.product.name} - {item.quantity} x LKR {item.product.price.toLocaleString()}
-                    </Text>
-                  ))}
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>
+                    {language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'}
+                  </Text>
+                  <Text style={styles.itemValue}>{lastInvoice.id}</Text>
+                </View>
+
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>{language === 'english' ? 'Amount:' : 'මුදල:'}</Text>
+                  <Text style={styles.itemValue}>LKR {lastInvoice.total.toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>{language === 'english' ? 'Date:' : 'දිනය:'} </Text>
+                  <Text style={styles.itemValue}>{new Date(lastInvoice.createdAt).toLocaleDateString()}</Text>
+                </View>
+
+                  <Text style={styles.modalTitle}>{language === 'english' ? 'Items:' : 'අයිතමයන්:'}</Text>
+                  <View style={styles.separator} />
+                  <FlatList
+                    data={lastInvoice.items}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({item}) => (
+                      <View style={styles.itemRow}>
+                        <Text style={styles.itemText}>{item.product.name || 'Unknown Product'}</Text>
+                        <Text style={styles.itemText}>{item.quantity} x LKR {item.product.price ? item.product.price.toLocaleString(): '0'}</Text>
+                      </View>
+                    )}
+                    />
+                  <View style={styles.separator} />
                 </>
               )}
               <TouchableOpacity
@@ -334,31 +355,58 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    width: '95%',
+    width: '90%',
     padding: 20,
     backgroundColor: 'white',
     borderRadius: 15,
-    alignItems: 'center',
+    shadowColor: 'gray',
+    shadowOffset: {width:0, height:2},
+    shadowOpacity:0.3,
+    shadowRadius:10,
+    elevation:5,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
-    alignContent:'center'
+    color: '#007AFF',
+    margin: 10,
+    textAlign: 'center',
+  },
+  itemRow:{
+    flexDirection: 'row',
+    justifyContent:'space-between',
+    alignItems:'center',
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  itemLabel: {
+    fontSize:16,
+    fontWeight:'bold',
+    color:'black',
   },
   itemText: {
     fontSize: 16,
-    marginVertical: 2,
+    marginVertical: 5,
+    color:'#555'
   },
   closeButton: {
     marginTop: 15,
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     backgroundColor: '#007AFF',
-    borderRadius: 5,
+    borderRadius: 10,
   },
   closeButtonText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center'
+  },
+  separator: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    marginVertical: 2,
   },
 });
 
