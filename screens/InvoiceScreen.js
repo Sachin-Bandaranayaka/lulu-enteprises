@@ -7,6 +7,7 @@ import {
   FlatList,
   StyleSheet,
   Alert,
+  Modal,
 } from 'react-native';
 import axios from 'axios';
 import { LanguageContext } from '../LanguageContext';
@@ -28,6 +29,8 @@ function InvoiceScreen() {
   const [total, setTotal] = useState(0);
   const [discountRules, setDiscountRules] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [lastInvoice, setLastInvoice] = useState(null);
 
   useEffect(() => {
     fetchProducts();
@@ -145,6 +148,8 @@ function InvoiceScreen() {
       };
 
       await axios.post(INVOICES_API, invoiceData);
+
+      setModalVisible(true);
       
       // Reset form
       setSelectedItems([]);
@@ -153,13 +158,14 @@ function InvoiceScreen() {
       setDiscount(0);
       setTotal(0);
       
-      Alert.alert(
-        language === 'english' ? 'Success' : 'සාර්ථකයි',
-        language === 'english' ? 'Invoice saved successfully' : 'ඉන්වොයිසිය සාර්ථකව සුරකින ලදී'
-      );
+      // Alert.alert(
+      //   language === 'english' ? 'Success' : 'සාර්ථකයි',
+      //   language === 'english' ? 'Invoice saved successfully' : 'ඉන්වොයිසිය සාර්ථකව සුරකින ලදී'
+      // );
       
       // Refresh products to get updated stock
       fetchProducts();
+      
     } catch (error) {
       console.error('Error saving invoice:', error);
       Alert.alert(
@@ -168,6 +174,8 @@ function InvoiceScreen() {
       );
     }
   };
+
+
 
   return (
     <SafeAreaView style={{height:"100%",padding: 15, backgroundColor:"#FFF"}} > 
@@ -232,6 +240,62 @@ function InvoiceScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+      <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isModalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>
+                {language === 'english'? 'Invoice Details' : 'ඉන්වොයිස විස්තර'}
+              </Text>
+              {lastInvoice && (
+                <>
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>
+                    {language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'}
+                  </Text>
+                  <Text style={styles.itemValue}>{lastInvoice.id}</Text>
+                </View>
+
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>{language === 'english' ? 'Amount:' : 'මුදල:'}</Text>
+                  <Text style={styles.itemValue}>LKR {lastInvoice.total.toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>{language === 'english' ? 'Date:' : 'දිනය:'} </Text>
+                  <Text style={styles.itemValue}>{new Date(lastInvoice.createdAt).toLocaleDateString()}</Text>
+                </View>
+
+                  <Text style={styles.modalTitle}>{language === 'english' ? 'Items:' : 'අයිතමයන්:'}</Text>
+                  <View style={styles.separator} />
+                  <FlatList
+                    data={lastInvoice.items}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({item}) => (
+                      <View style={styles.itemRow}>
+                        <Text style={styles.itemText}>{item.product.name || 'Unknown Product'}</Text>
+                        <Text style={styles.itemText}>{item.quantity} x LKR {item.product.price ? item.product.price.toLocaleString(): '0'}</Text>
+                      </View>
+                    )}
+                    />
+                  <View style={styles.separator} />
+                </>
+              )}
+              <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>
+                  {language === 'english' ? 'Close' : 'ඉවත්වන්න'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
     </View>
     </SafeAreaView>
   );
@@ -288,7 +352,69 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: '#ccc',
-  }
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+
+  modalContainer: {
+    width: '90%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    shadowColor: 'gray',
+    shadowOffset: {width:0, height:2},
+    shadowOpacity:0.3,
+    shadowRadius:10,
+    elevation:5,
+    alignContent:"center"
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    margin: 10,
+    textAlign: 'center',
+  },
+  itemRow:{
+    flexDirection: 'row',
+    justifyContent:'space-between',
+    alignItems:'center',
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  itemLabel: {
+    fontSize:16,
+    fontWeight:'bold',
+    color:'black',
+  },
+  itemText: {
+    fontSize: 16,
+    marginVertical: 5,
+    color:'#555'
+  },
+  closeButton: {
+    marginTop: 15,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'center'
+  },
+  separator: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    marginVertical: 2,
+  },
 });
 
 export default InvoiceScreen;
