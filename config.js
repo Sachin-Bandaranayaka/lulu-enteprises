@@ -8,7 +8,7 @@ const getBaseUrl = () => {
     if (Platform.OS === 'android') {
       return 'http://192.168.8.101:3000'; // Your computer's IP address
     } else if (Platform.OS === 'ios') {
-      return 'http://172.20.10.3:3000';
+      return 'http://192.168.8.176:3000';
     }
     return 'http://localhost:8081';
   }
