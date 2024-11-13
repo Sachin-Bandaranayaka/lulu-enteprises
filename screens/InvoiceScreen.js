@@ -147,9 +147,16 @@ function InvoiceScreen() {
         total
       };
 
-      await axios.post(INVOICES_API, invoiceData);
+      setLastInvoice({
+        ...invoiceData,
+        createdAt: new Date().toISOString(),
+      });
 
       setModalVisible(true);
+
+      await axios.post(INVOICES_API, invoiceData);
+
+      
       
       // Reset form
       setSelectedItems([]);
@@ -257,12 +264,12 @@ function InvoiceScreen() {
                   <Text style={styles.itemLabel}>
                     {language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'}
                   </Text>
-                  <Text style={styles.itemValue}>{lastInvoice.id}</Text>
+                  <Text style={styles.itemValue}>{lastInvoice.customerDetails.storeName}</Text>
                 </View>
 
                 <View style={styles.itemRow}>
                   <Text style={styles.itemLabel}>{language === 'english' ? 'Amount:' : 'මුදල:'}</Text>
-                  <Text style={styles.itemValue}>LKR {lastInvoice.total.toLocaleString()}</Text>
+                  <Text style={styles.itemValue}>LKR {lastInvoice.subtotal.toLocaleString()}</Text>
                 </View>
 
                 <View style={styles.itemRow}>
@@ -277,8 +284,8 @@ function InvoiceScreen() {
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({item}) => (
                       <View style={styles.itemRow}>
-                        <Text style={styles.itemText}>{item.product.name || 'Unknown Product'}</Text>
-                        <Text style={styles.itemText}>{item.quantity} x LKR {item.product.price ? item.product.price.toLocaleString(): '0'}</Text>
+                        <Text style={styles.itemText}>{item.name || 'Unknown Product'}</Text>
+                        <Text style={styles.itemText}>{item.quantity} x LKR {item.price ? item.price.toLocaleString(): '0'}</Text>
                       </View>
                     )}
                     />
