@@ -16,6 +16,7 @@ import ProductItem from '../components/ProductItem';
 import { PRODUCTS_API, INVOICES_API, DISCOUNT_RULES_API } from '../config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axiosInstance from '../utils/axiosConfig';
+import RNPrint from 'react-native-print';
 
 function InvoiceScreen() {
   const { language } = useContext(LanguageContext);
@@ -181,6 +182,30 @@ function InvoiceScreen() {
       );
     }
   };
+  const printInvoice = async () => {
+    if (!lastInvoice) return;
+    
+    const htmlContent = `
+      <h2>Invoice Details</h2>
+      <p>Store Name: ${lastInvoice.customerDetails.storeName}</p>
+      <p>Date: ${new Date(lastInvoice.createdAt).toLocaleDateString()}</p>
+      <h3>Items:</h3>
+      <ul>
+        ${lastInvoice.items.map(item => `<li>${item.name || 'Unknown Product'} - ${item.quantity} x LKR ${item.price ? item.price.toLocaleString() : '0'}</li>`).join('')}
+      </ul>
+      <p>Subtotal: LKR ${lastInvoice.subtotal.toLocaleString()}</p>
+      <p>Discount: LKR ${lastInvoice.discount.toLocaleString()}</p>
+      <p>Total: LKR ${lastInvoice.total.toLocaleString()}</p>
+    `;
+
+    try {
+      await RNPrint.print({
+        html: htmlContent
+      });
+    } catch (error) {
+      console.error('Error printing invoice:', error);
+    }
+  };
 
 
 
@@ -262,22 +287,19 @@ function InvoiceScreen() {
                 <>
                 <View style={styles.itemRow}>
                   <Text style={styles.itemLabel}>
-                    {language === 'english' ? 'Invoice ID:' : 'ඉන්වොයිස අංකය:'}
+                    {language === 'english' ? 'Store Name:' : 'වෙළඳසැලේ නම:'}
                   </Text>
                   <Text style={styles.itemValue}>{lastInvoice.customerDetails.storeName}</Text>
                 </View>
 
-                <View style={styles.itemRow}>
-                  <Text style={styles.itemLabel}>{language === 'english' ? 'Amount:' : 'මුදල:'}</Text>
-                  <Text style={styles.itemValue}>LKR {lastInvoice.subtotal.toLocaleString()}</Text>
-                </View>
+                
 
                 <View style={styles.itemRow}>
                   <Text style={styles.itemLabel}>{language === 'english' ? 'Date:' : 'දිනය:'} </Text>
                   <Text style={styles.itemValue}>{new Date(lastInvoice.createdAt).toLocaleDateString()}</Text>
                 </View>
 
-                  <Text style={styles.modalTitle}>{language === 'english' ? 'Items:' : 'අයිතමයන්:'}</Text>
+                  <Text style={styles.modalTitle}>{language === 'english' ? 'Items' : 'අයිතමයන්'}</Text>
                   <View style={styles.separator} />
                   <FlatList
                     data={lastInvoice.items}
@@ -289,15 +311,31 @@ function InvoiceScreen() {
                       </View>
                     )}
                     />
-                  <View style={styles.separator} />
+                  {/* <View style={styles.separator} /> */}
+
+                  <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>{language === 'english' ? 'Subtotal:' : 'උප එකතුව:'}</Text>
+                  <Text style={styles.itemValue}>LKR {lastInvoice.subtotal.toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>{language === 'english' ? 'Discount:' : 'වට්ටම:'}</Text>
+                  <Text style={styles.itemValue}>LKR {lastInvoice.discount.toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.itemRow}>
+                  <Text style={styles.itemLabel}>{language === 'english' ? 'Total:' : 'මුළු එකතුව:'}</Text>
+                  <Text style={styles.itemValue}>LKR {lastInvoice.total.toLocaleString()}</Text>
+                </View>
+
                 </>
               )}
               <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
+              style={styles.printButton}
+              onPress={(printInvoice)}
               >
-                <Text style={styles.closeButtonText}>
-                  {language === 'english' ? 'Close' : 'ඉවත්වන්න'}
+                <Text style={styles.printButtonText}>
+                  {language === 'english' ? 'Print' : 'Print'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -404,14 +442,14 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     color:'#555'
   },
-  closeButton: {
+  printButton: {
     marginTop: 15,
     paddingVertical: 10,
     paddingHorizontal: 20,
     backgroundColor: '#007AFF',
     borderRadius: 10,
   },
-  closeButtonText: {
+  printButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
