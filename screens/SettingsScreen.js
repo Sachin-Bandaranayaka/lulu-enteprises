@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import axiosInstance from '../utils/axiosConfig';
 import { LanguageContext } from '../LanguageContext';
-import { DISCOUNT_RULES_API, INVOICES_API } from '../config';
+import { DISCOUNT_RULES_API, INVOICES_API, STOCK_API } from '../config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 function SettingsScreen() {
@@ -70,6 +70,54 @@ function SettingsScreen() {
       setLoadingInvoice(false);
     }
   };
+
+  const updateStockAfterDeletion = async (invoiceItems) => {
+    try {
+      for (const item of invoiceItems) {
+        const { product, quantity } = item;
+
+        if (!product || !product.id) {
+          console.warn('Invalid product data:',product);
+          continue;
+        }
+        await axiosInstance.put(`${STOCK_API}/${product.id}/update`, {
+          adjustment: quantity,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      Alert.alert(
+        language === 'english' ? 'Stock Update Error' : 'ස්ටොක් යාවත්කාලීන දෝෂය',
+        language === 'english'
+          ? 'Failed to update stock after invoice deletion.'
+          : 'ඉන්වොයිස මකා දැමීමෙන් පසු ස්ටොක් යාවත්කාලීන කිරීමට අසමත් විය.'
+      );
+    }
+  };
+
+  const deleteLastInvoice = async () => {
+    try {
+      const response = await axiosInstance.delete(`${INVOICES_API}/lastInvoice`);
+      if (response.data.success) {
+        Alert.alert(
+          language === 'english' ? 'Success' : 'සාර්ථකයි',
+          language === 'english'
+            ? 'Last invoice deleted successfully.'
+            : 'අවසන් ඉන්වොයිස සාර්ථකව මකා දමන ලදී'
+        );
+        if (lastInvoice && lastInvoice.items) {
+          await updateStockAfterDeletion(lastInvoice.items);
+        }
+        fetchLastInvoice(); // Refresh last invoice data
+      } else {
+        throw new Error(response.data.message || 'Failed to delete last invoice');
+      }
+    } catch (error) {
+      console.error('Error deleting last invoice:', error);
+      showAlert('deleteInvoice');
+    }
+  };
+
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -248,6 +296,7 @@ function SettingsScreen() {
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({item}) => (
                       <View style={styles.itemRow}>
+                        <Text style={styles.itemText}>{item.product.id}</Text>
                         <Text style={styles.itemText}>{item.product.name || 'Unknown Product'}</Text>
                         <Text style={styles.itemText}>{item.quantity} x LKR {item.product.price ? item.product.price.toLocaleString(): '0'}</Text>
                       </View>
@@ -256,6 +305,28 @@ function SettingsScreen() {
                   <View style={styles.separator} />
                 </>
               )}
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() =>
+                  Alert.alert(
+                    language === 'english' ? 'Delete Invoice' : 'ඉන්වොයිස මකන්න',
+                    language === 'english'
+                      ? 'Are you sure to delete the invoice?'
+                      : 'අවසන් ඉන්වොයිස මකා දැමීමට විශ්වාසද?',
+                    [
+                      {text: language === 'english' ? 'Cancel' : 'අවලංගු කරන්න', style:'cancel' },
+                      {
+                        text: language === 'english' ? 'Delete' : 'මකන්න',
+                        style:'destructive',
+                        onPress: deleteLastInvoice,
+                      },
+                    ]
+                  )
+                }>
+                  <Text style={styles.deleteButtonText}>
+                    {language === 'english' ? 'Delete Invoice' : 'ඉන්වොයිස මකන්න'}
+                  </Text>
+              </TouchableOpacity>
               <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
@@ -407,6 +478,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
     marginVertical: 2,
+  },
+  deleteButton: {
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
