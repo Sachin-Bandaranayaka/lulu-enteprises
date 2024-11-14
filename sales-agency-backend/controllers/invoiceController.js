@@ -56,7 +56,7 @@ exports.getLastInvoice = async (req, res) => {
             {
               model: Product,
               as: 'product',
-              attributes: ['name','price']
+              attributes: ['id','name','price']
             }
           ]
         }
@@ -74,5 +74,46 @@ exports.getLastInvoice = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+exports.deleteLastInvoice = async (req, res) => {
+  try {
+    // Find the last invoice by createdAt in descending order
+    const lastInvoice = await Invoice.findOne({
+      order: [['createdAt', 'DESC']],
+      include: [
+        { 
+          model: InvoiceItem, 
+          as: 'items',
+          include: [
+            {
+              model:Product,
+              as:'Product',
+              attributes: ['id','name','stock'],
+            },
+          ], 
+        },
+      ],
+    });
 
+    if (!lastInvoice) {
+      return res.status(404).json({ success: false, message: 'No invoices found' });
+    }
+
+    for (const item of lastInvoice.items) {
+      const product = item.product;
+      if (product) {
+        product.stock += item.quantity;
+        await product.save();
+      }
+    }
+
+    // Delete the invoice items first (if any), then the invoice itself
+    await InvoiceItem.destroy({ where: { invoiceId: lastInvoice.id } });
+    await lastInvoice.destroy();
+
+    res.json({ success: true, message: 'Last invoice deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting last invoice:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
 // Add methods for getting invoices, updating invoices, etc.
